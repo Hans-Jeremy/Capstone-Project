@@ -9,9 +9,7 @@ import time
 #--------------------------------------------------
 #List of problems currently
 #--------------------------------------------------
-#   -Cannot get multithreading or parallel processing to work with parallelize
-#   -Parallelize errors may involve with Origin
-#   -Turning any for loops into parallel processing
+#   -Comparison of times with multithreading and without multithreading
 #--------------------------------------------------
 
 #Matrix class
@@ -58,9 +56,20 @@ struct Matrix:
                 temp[i].append(matrix2.matrix[j][i])
         for i in range(self.height):
             var list1 = matrix1.matrix[i]
-            for j in range(self.width):
+            #Multithreading
+            @parameter
+            fn processRow(j:Int):
                 var list2 = temp[j]
-                self.matrix[i].append(self.initRow(list1, list2))
+                self.matrix[i].insert(j, self.initRow(list1, list2))
+            parallelize[processRow](self.width)
+        
+        #Initialization code without multithreading
+        #for i in range(self.height):
+        #    var list1 = matrix1.matrix[i]
+        #    for j in range(self.width):
+        #        var list2 = temp[j]
+        #        self.matrix[i].append( self.initRow(list1, list2))
+            
                 
         
 
@@ -81,7 +90,10 @@ struct Matrix:
 
 
 
+
+
 fn main() raises:
+    
     var matrix_1:Matrix = Matrix()
     print()
     print("Matrix 1:")
@@ -94,9 +106,10 @@ fn main() raises:
     print()
     print("Matrix Product:")
     matrix_3.printMatrix()
-
-    #numbers = [1, 2, 3, 4, 5]
-    #parallelize[square](numbers)
+    
+    
+    
+    
     
 
 
