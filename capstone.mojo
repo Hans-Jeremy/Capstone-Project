@@ -54,14 +54,19 @@ struct Matrix:
         for i in range(matrix2.width):
             for j in range(matrix2.height):
                 temp[i].append(matrix2.matrix[j][i])
-        for i in range(self.height):
+        #Multithreading
+        @parameter
+        fn processColumn(i:Int):
             var list1 = matrix1.matrix[i]
-            #Multithreading
+            var list3: List[Float64] = List[Float64](capacity=matrix2.width)
             @parameter
             fn processRow(j:Int):
                 var list2 = temp[j]
-                self.matrix[i].insert(j, self.initRow(list1, list2))
+                
+                list3.insert(j, self.initRow(list1, list2))
             parallelize[processRow](self.width)
+            self.matrix.insert(i, list3)
+        parallelize[processColumn](self.height)
         
         #Initialization code without multithreading
         #for i in range(self.height):
