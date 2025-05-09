@@ -89,8 +89,13 @@ struct Matrix:
 
     fn initRow(self, row: List[Float64], column: List[Float64]) -> Float64:
         var sum: Float64 = 0
-        for i in range(len(column)):
+        @parameter
+        fn makeSum(i:Int):
             sum += (row[i] * column[i])
+        parallelize[makeSum](len(column))
+        #Initialization code without multithreading
+        #for i in range(len(column)):
+        #    sum += (row[i] * column[i])
         return sum
 
 
