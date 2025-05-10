@@ -71,9 +71,9 @@ struct Matrix(Copyable):
                 var list2 = temp[j]
                 
                 list3.insert(j, self.initRow1(list1, list2))
-            parallelize[processRow](self.width)
+            parallelize[processRow](self.width, 1)
             self.matrix.insert(i, list3)
-        parallelize[processColumn](self.height)
+        parallelize[processColumn](self.height, 1)
 
     #Standard method constructor 
     fn __init__(out self, matrix1: Matrix, matrix2: Matrix, switch: Int):
@@ -110,7 +110,7 @@ struct Matrix(Copyable):
         @parameter
         fn makeSum(i:Int):
             sum += (row[i] * column[i])
-        parallelize[makeSum](len(column))
+        parallelize[makeSum](len(column), 1)
 
         return sum
 
