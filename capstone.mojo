@@ -2,18 +2,25 @@
 from algorithm.functional import parallelize
 
 import time
+from time import perf_counter
+
 #List of references to possibly use
 #--------------------------------------------------
 #   -https://youtu.be/GdDc5MigPWw?si=05Dycwe3H--n6CcZ (Creating Matrixes but pointers are not working)
 #   -https://docs.modular.com/mojo/stdlib/algorithm/functional/parallelize (Creating the parallel processing but can't get it to work)
+#   -https://docs.modular.com/mojo/stdlib/time/time/ (timer)
 #--------------------------------------------------
 #List of problems currently
 #--------------------------------------------------
-#   -Comparison of times with multithreading and without multithreading
+#   -(semi-fixed) Comparison of times with multithreading and without multithreading 
+#   -For me(Chris) keep getting error about llvm-symbolizer when trying to run both 
+#    Multithread and standard.  Seems to also sometimes happen when dealing with big numbers
+#    very weird bug that I cannot seem to fix rn
+#   -For some reason standard is faster than Multithread method.  A good amount faster too.
 #--------------------------------------------------
 
 #Matrix class
-struct Matrix:
+struct Matrix(Copyable):
     var height: Int
     var width: Int
     var matrix: List[List[Float64]]
@@ -63,17 +70,27 @@ struct Matrix:
             fn processRow(j:Int):
                 var list2 = temp[j]
                 
-                list3.insert(j, self.initRow(list1, list2))
+                list3.insert(j, self.initRow1(list1, list2))
             parallelize[processRow](self.width)
             self.matrix.insert(i, list3)
         parallelize[processColumn](self.height)
-        
-        #Initialization code without multithreading
-        #for i in range(self.height):
-        #    var list1 = matrix1.matrix[i]
-        #    for j in range(self.width):
-        #        var list2 = temp[j]
-        #        self.matrix[i].append( self.initRow(list1, list2))
+
+    #Standard method constructor 
+    fn __init__(out self, matrix1: Matrix, matrix2: Matrix, switch: Int):
+        self.height = matrix1.height
+        self.width = matrix2.width
+        self.matrix = List[List[Float64]](capacity=(self.width*self.height))
+        var temp = List[List[Float64]](capacity=(matrix2.width*matrix2.height))
+
+        for i in range(matrix2.width):
+            for j in range(matrix2.height):
+                temp[i].append(matrix2.matrix[j][i])
+
+        for i in range(self.height):
+            var list1 = matrix1.matrix[i]
+            for j in range(self.width):
+                var list2 = temp[j]
+                self.matrix[i].append( self.initRow2(list1, list2))
             
                 
         
@@ -87,23 +104,31 @@ struct Matrix:
                 print(self.matrix[i][j], end=",\t ")
             print()
 
-    fn initRow(self, row: List[Float64], column: List[Float64]) -> Float64:
+    #Initialization code with multithreading
+    fn initRow1(self, row: List[Float64], column: List[Float64]) -> Float64:
         var sum: Float64 = 0
         @parameter
         fn makeSum(i:Int):
             sum += (row[i] * column[i])
         parallelize[makeSum](len(column))
-        #Initialization code without multithreading
-        #for i in range(len(column)):
-        #    sum += (row[i] * column[i])
+
         return sum
 
+    #Initialization code without multithreading
+    fn initRow2(self, row: List[Float64], column: List[Float64]) -> Float64:
+        var sum: Float64 = 0
+        for i in range(len(column)):
+            sum += (row[i] * column[i])
+        return sum
+
+    fn __copyinit__(out self, other: Self):
+        self.height = other.height
+        self.width = other.width
+        self.matrix = other.matrix
 
 
 
-
-fn main() raises:
-    
+fn main() raises: 
     var matrix_1:Matrix = Matrix()
     print()
     print("Matrix 1:")
@@ -112,13 +137,29 @@ fn main() raises:
     print()
     print("Matrix 2:")
     matrix_2.printMatrix()
+
+    var matrix_1_copy = matrix_1
+    var matrix_2_copy = matrix_2
+
+    #multithreaded matrix multiplication
+    var start1 = time.perf_counter()
     var matrix_3:Matrix = Matrix(matrix_1, matrix_2)
+    var end1 = time.perf_counter()
     print()
     print("Matrix Product:")
     matrix_3.printMatrix()
+    print("Time elapsed (Multithreading): ", end1 - start1, " seconds")
+
+    #standard matrix multiplication
+    var start2 = time.perf_counter()
+    var matrix_4:Matrix = Matrix(matrix_1_copy, matrix_2_copy, 1)
+    var end2 = time.perf_counter()
+    print()
+    print("Matrix Product:")
+    matrix_4.printMatrix()
+    print("Time elapsed (Standard): ", end2 - start2, " seconds")
     
-    
-    
+
     
     
 
