@@ -60,7 +60,12 @@ struct Matrix(Copyable):
                 for k in range(self.width):
                     sum += self.matrix[i][k] * temp[j][k]
                 result.matrix[i][j] = sum
-
+        
+        if (result.height < 10 and result.width < 10):
+            print("Matrix Product (Standard):")
+            result.printMatrix()
+            print()
+        
         return result
 
     # Matrix multiplication (Multithreaded)
@@ -86,6 +91,11 @@ struct Matrix(Copyable):
                 result.matrix[i][j] = sum
 
         parallelize[compute_row](self.height)
+
+        if (result.height < 10 and result.width < 10):
+            print("Matrix Product (Parallel):")
+            result.printMatrix()
+            print()
         return result
 
     fn printMatrix(self):
@@ -119,7 +129,7 @@ fn main() raises:
     var result_parallel2 = m3.multiply_parallel(m4)
     var end3 = perf_counter_ns()
     print("Parallel Time (Smaller Matrices): ", end3 - start3, " nanoseconds")
-
+    print()
     var start4 = perf_counter_ns()
     var result_standard2 = m3.multiply_standard(m4)
     var end4 = perf_counter_ns()
