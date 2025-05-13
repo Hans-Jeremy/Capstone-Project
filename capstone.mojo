@@ -1,9 +1,6 @@
-
 from algorithm.functional import parallelize
-
-import time
+from time import perf_counter_ns
 from random import random_si64
-from time import perf_counter
 
 #List of references to possibly use
 #--------------------------------------------------
@@ -13,155 +10,130 @@ from time import perf_counter
 #--------------------------------------------------
 #List of problems currently
 #--------------------------------------------------
-#   -(semi-fixed) Comparison of times with multithreading and without multithreading 
-#   -For me(Chris) keep getting error about llvm-symbolizer when trying to run both 
-#    Multithread and standard.  Seems to also sometimes happen when dealing with big numbers
-#    very weird bug that I cannot seem to fix rn
-#   -For some reason standard is faster than Multithread method.  A good amount faster too.
+#   
 #--------------------------------------------------
 
-#Matrix class
 struct Matrix(Copyable):
     var height: Int
     var width: Int
     var matrix: List[List[Float64]]
 
-    fn __init__(out self) raises:
-        var height:Int = 10
-        var width:Int = 10
+    fn __init__(out self, height: Int, width: Int) raises:
         self.height = height if height > 0 else 1
         self.width = width if width > 0 else 1
-        self.matrix = List[List[Float64]](capacity=(self.width*self.height)) #For initializing the 2D array (Capacity is only how much it can hold but doesn't show actual size)
-        #Adding the elements of the matrix
-        for i in range(self.height):
-            for j in range(self.width):
-                #var message = String("Input the element at location ", i, ", ", j, ": ")
-                var elementInput = random_si64(0, 1000)
-                self.matrix[i].append(Float64(elementInput))
-        
-    #Second constructor mainly to copy the width of other matrices for the second matrix
-    fn __init__(out self, matrix: Matrix) raises:
-        var width:Int = 10
-        self.height = matrix.width if matrix.width > 0 else 1
-        self.width = width if width > 0 else 1
-        self.matrix = List[List[Float64]](capacity=(self.width*self.height))
-        #Adding the elements of the matrix
-        for i in range(self.height):
-            for j in range(self.width):
-                #var message = String("Input the element at location ", i, ", ", j, ": ")
-                var elementInput = random_si64(0, 1000)
-                self.matrix[i].append(Float64(elementInput))
+        self.matrix = List[List[Float64]](capacity=self.height)
 
-    #Third constructor to create the answer matrix
-    fn __init__(out self, matrix1: Matrix, matrix2: Matrix):
-        self.height = matrix1.height
-        self.width = matrix2.width
-        self.matrix = List[List[Float64]](capacity=(self.width*self.height))
-        var temp = List[List[Float64]](capacity=(matrix2.width*matrix2.height))
-
-        for i in range(matrix2.width):
-            for j in range(matrix2.height):
-                temp[i].append(matrix2.matrix[j][i])
-        #Multithreading
-        @parameter
-        fn processColumn(i:Int):
-            var list1 = matrix1.matrix[i]
-            var list3: List[Float64] = List[Float64](capacity=matrix2.width)
-            @parameter
-            fn processRow(j:Int):
-                var list2 = temp[j]
-                
-                list3.insert(j, self.initRow1(list1, list2))
-            parallelize[processRow](self.width)
-            self.matrix.insert(i, list3)
-        parallelize[processColumn](self.height)
-
-    #Standard method constructor 
-    fn __init__(out self, matrix1: Matrix, matrix2: Matrix, switch: Int):
-        self.height = matrix1.height
-        self.width = matrix2.width
-        self.matrix = List[List[Float64]](capacity=(self.width*self.height))
-        var temp = List[List[Float64]](capacity=(matrix2.width*matrix2.height))
-
-        for i in range(matrix2.width):
-            for j in range(matrix2.height):
-                temp[i].append(matrix2.matrix[j][i])
-
-        for i in range(self.height):
-            var list1 = matrix1.matrix[i]
-            for j in range(self.width):
-                var list2 = temp[j]
-                self.matrix[i].append( self.initRow2(list1, list2))
-            
-                
-        
-
-    fn getElement(self, x:Int, y:Int) -> Float64:
-        return self.matrix[y][x]
-
-    #fn printMatrix(self):
-    #    for i in range(self.height):
-    #        for j in range(self.width):
-    #            print(self.matrix[i][j], end=",\t ")
-    #        print()
-
-    #Initialization code with multithreading
-    fn initRow1(self, row: List[Float64], column: List[Float64]) -> Float64:
-        var sum: Float64 = 0
-        @parameter
-        fn makeSum(i:Int):
-            sum += (row[i] * column[i])
-        parallelize[makeSum](len(column))
-
-        return sum
-
-    #Initialization code without multithreading
-    fn initRow2(self, row: List[Float64], column: List[Float64]) -> Float64:
-        var sum: Float64 = 0
-        for i in range(len(column)):
-            sum += (row[i] * column[i])
-        return sum
+        #initialize with random variables
+        for _ in range(self.height):
+            var row = List[Float64](capacity=self.width)
+            for _ in range(self.width):
+                row.append(Float64(random_si64(0, 1000)))
+            self.matrix.append(row)
 
     fn __copyinit__(out self, other: Self):
         self.height = other.height
         self.width = other.width
-        self.matrix = other.matrix
+        self.matrix = List[List[Float64]](capacity=self.height)
+        for _ in other.matrix:
+            var new_row = List[Float64](capacity=self.width)
+            for x in range(self.width):
+                new_row.append(x)
+            self.matrix.append(new_row)
+
+    # Matrix multiplication (Standard)
+    fn multiply_standard(self, other: Self) raises -> Self:
+        #copy given Matrix
+        var result = Matrix(self.height, other.width)
+
+        #change second matrix's rows to columns
+        var temp = List[List[Float64]](capacity=other.width)
+        for j in range(other.width):
+            var col = List[Float64](capacity=other.height)
+            for i in range(other.height):
+                col.append(other.matrix[i][j])
+            temp.append(col)
+
+        #initialize and fill result's matrix
+        for i in range(self.height):
+            for j in range(other.width):
+                var sum: Float64 = 0
+                for k in range(self.width):
+                    sum += self.matrix[i][k] * temp[j][k]
+                result.matrix[i][j] = sum
+
+        return result
+
+    # Matrix multiplication (Multithreaded)
+    fn multiply_parallel(self, other: Self) raises -> Self:
+        #copy given Matrix
+        var result = Matrix(self.height, other.width)
+
+        #change second matrix's rows to columns
+        var temp = List[List[Float64]](capacity=other.width)
+        for j in range(other.width):
+            var col = List[Float64](capacity=other.height)
+            for i in range(other.height):
+                col.append(other.matrix[i][j])
+            temp.append(col)
+
+        #initialize and fill result's matrix
+        @parameter
+        fn compute_row(i: Int):
+            for j in range(other.width):
+                var sum: Float64 = 0
+                for k in range(self.width):
+                    sum += self.matrix[i][k] * temp[j][k]
+                result.matrix[i][j] = sum
+
+        parallelize[compute_row](self.height)
+        return result
+
+    fn printMatrix(self):
+        for i in range(self.height):
+            for j in range(self.width):
+                print(self.matrix[i][j], end=",\t")
+            print()
 
 
+fn main() raises:
+    #initialize a matrix with a big data set
+    var size = 1000
+    var m1 = Matrix(size, size)
+    var m2 = Matrix(size, size)
 
-fn main() raises: 
-    var matrix_1:Matrix = Matrix()
+    #initialize a matrix with a small data set
+    size = 2
+    var m3 = Matrix(size, size)
+    var m4 = Matrix(size, size)
+
+    #print the small matrices
+    print("Smaller Matrix Example 1:")
+    m3.printMatrix()
     print()
-    print("Matrix 1:")
-    #matrix_1.printMatrix()
-    var matrix_2:Matrix = Matrix(matrix_1)
+    print("Smaller Matrix Example 1:")
+    m4.printMatrix()
     print()
-    print("Matrix 2:")
-    #matrix_2.printMatrix()
 
-    var matrix_1_copy = matrix_1
-    var matrix_2_copy = matrix_2
+    #print the times with small matrices
+    var start3 = perf_counter_ns()
+    var result_parallel2 = m3.multiply_parallel(m4)
+    var end3 = perf_counter_ns()
+    print("Parallel Time (Smaller Matrices): ", end3 - start3, " nanoseconds")
 
-    #multithreaded matrix multiplication
-    var start1 = time.perf_counter()
-    var matrix_3:Matrix = Matrix(matrix_1, matrix_2)
-    var end1 = time.perf_counter()
+    var start4 = perf_counter_ns()
+    var result_standard2 = m3.multiply_standard(m4)
+    var end4 = perf_counter_ns()
+    print("Standard Time (Smaller Matrices): ", end4 - start4, " nanoseconds")
+
     print()
-    print("Matrix Product:")
-    #matrix_3.printMatrix()
-    print("Time elapsed (Multithreading): ", end1 - start1, " seconds")
 
-    #standard matrix multiplication
-    var start2 = time.perf_counter()
-    var matrix_4:Matrix = Matrix(matrix_1_copy, matrix_2_copy, 1)
-    var end2 = time.perf_counter()
-    print()
-    print("Matrix Product:")
-    #matrix_4.printMatrix()
-    print("Time elapsed (Standard): ", end2 - start2, " seconds")
-    
+    #print the times with big matrices
+    var start1 = perf_counter_ns()
+    var result_parallel = m1.multiply_parallel(m2)
+    var end1 = perf_counter_ns()
+    print("Parallel Time (Bigger Matrices): ", end1 - start1, " nanoseconds")
 
-    
-    
-
-
+    var start2 = perf_counter_ns()
+    var result_standard = m1.multiply_standard(m2)
+    var end2 = perf_counter_ns()
+    print("Standard Time (Bigger Matrices): ", end2 - start2, " nanoseconds")
