@@ -2,6 +2,7 @@
 from algorithm.functional import parallelize
 
 import time
+from random import random_si64
 from time import perf_counter
 
 #List of references to possibly use
@@ -26,29 +27,29 @@ struct Matrix(Copyable):
     var matrix: List[List[Float64]]
 
     fn __init__(out self) raises:
-        var height:Int = Int(input("Input the height of the matrix: "))
-        var width:Int = Int(input("Input the width of the matrix: "))
+        var height:Int = 10
+        var width:Int = 10
         self.height = height if height > 0 else 1
         self.width = width if width > 0 else 1
         self.matrix = List[List[Float64]](capacity=(self.width*self.height)) #For initializing the 2D array (Capacity is only how much it can hold but doesn't show actual size)
         #Adding the elements of the matrix
         for i in range(self.height):
             for j in range(self.width):
-                var message = String("Input the element at location ", i, ", ", j, ": ")
-                var elementInput = input(message)
+                #var message = String("Input the element at location ", i, ", ", j, ": ")
+                var elementInput = random_si64(0, 1000)
                 self.matrix[i].append(Float64(elementInput))
         
     #Second constructor mainly to copy the width of other matrices for the second matrix
     fn __init__(out self, matrix: Matrix) raises:
-        var width:Int = Int(input("Input the width of the matrix: "))
+        var width:Int = 10
         self.height = matrix.width if matrix.width > 0 else 1
         self.width = width if width > 0 else 1
         self.matrix = List[List[Float64]](capacity=(self.width*self.height))
         #Adding the elements of the matrix
         for i in range(self.height):
             for j in range(self.width):
-                var message = String("Input the element at location ", i, ", ", j, ": ")
-                var elementInput = input(message)
+                #var message = String("Input the element at location ", i, ", ", j, ": ")
+                var elementInput = random_si64(0, 1000)
                 self.matrix[i].append(Float64(elementInput))
 
     #Third constructor to create the answer matrix
@@ -98,11 +99,11 @@ struct Matrix(Copyable):
     fn getElement(self, x:Int, y:Int) -> Float64:
         return self.matrix[y][x]
 
-    fn printMatrix(self):
-        for i in range(self.height):
-            for j in range(self.width):
-                print(self.matrix[i][j], end=",\t ")
-            print()
+    #fn printMatrix(self):
+    #    for i in range(self.height):
+    #        for j in range(self.width):
+    #            print(self.matrix[i][j], end=",\t ")
+    #        print()
 
     #Initialization code with multithreading
     fn initRow1(self, row: List[Float64], column: List[Float64]) -> Float64:
@@ -132,11 +133,11 @@ fn main() raises:
     var matrix_1:Matrix = Matrix()
     print()
     print("Matrix 1:")
-    matrix_1.printMatrix()
+    #matrix_1.printMatrix()
     var matrix_2:Matrix = Matrix(matrix_1)
     print()
     print("Matrix 2:")
-    matrix_2.printMatrix()
+    #matrix_2.printMatrix()
 
     var matrix_1_copy = matrix_1
     var matrix_2_copy = matrix_2
@@ -147,7 +148,7 @@ fn main() raises:
     var end1 = time.perf_counter()
     print()
     print("Matrix Product:")
-    matrix_3.printMatrix()
+    #matrix_3.printMatrix()
     print("Time elapsed (Multithreading): ", end1 - start1, " seconds")
 
     #standard matrix multiplication
@@ -156,7 +157,7 @@ fn main() raises:
     var end2 = time.perf_counter()
     print()
     print("Matrix Product:")
-    matrix_4.printMatrix()
+    #matrix_4.printMatrix()
     print("Time elapsed (Standard): ", end2 - start2, " seconds")
     
 
